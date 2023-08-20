@@ -207,6 +207,7 @@ def destroy() -> None:
 
 def run() -> None:
     parse_args()
+    print('roop.globals:', roop.globals)
     if not pre_check():
         return
     for frame_processor in get_frame_processors_modules(roop.globals.frame_processors):
