@@ -2,6 +2,14 @@
 
 import os
 import sys
+import dlib
+import cv2
+import subprocess
+import os
+import requests
+import time
+
+
 # single thread doubles cuda performance - needs to be set before torch import
 if any(arg.startswith('--execution-provider') for arg in sys.argv):
     os.environ['OMP_NUM_THREADS'] = '1'
@@ -205,17 +213,269 @@ def destroy() -> None:
     sys.exit()
 
 
+def proc_video(input_video_filename, face_path):
+    # 加载 dlib 的人脸检测器
+    face_detector = dlib.get_frontal_face_detector()
+
+    cap = cv2.VideoCapture(input_video_filename)
+
+    min_x, min_y, max_x, max_y = float('inf'), float('inf'), 0, 0
+    frame_skip_interval = 30
+    frame_count = 0
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+        if frame_count % frame_skip_interval == 0:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            # 使用 dlib 进行人脸检测
+            faces = face_detector(gray)
+            for face in faces:
+                x, y, w, h = face.left(), face.top(), face.width(), face.height()
+                min_x = min(min_x, x)
+                min_y = min(min_y, y)
+                max_x = max(max_x, x + w)
+                max_y = max(max_y, y + h)
+        frame_count += 1
+
+    cap.release()
+
+    # 计算最小矩形区域的位置和尺寸
+    rect_x = min_x
+    rect_y = min_y
+    rect_width = max_x - min_x
+    rect_height = max_y - min_y
+
+    print("矩形区域的位置和尺寸:")
+    print("左上角坐标 (x, y):", rect_x, rect_y)
+    print("宽度:", rect_width)
+    print("高度:", rect_height)
+
+    ffmpeg_command = [
+            'ffmpeg',
+            '-i', input_video_filename,
+            '-vf', f'crop={rect_width}:{rect_height}:{rect_x}:{rect_y}',
+            '-y',  # 强制覆盖
+            'media_sub.mp4'
+            ]
+    subprocess.run(ffmpeg_command)
+
+    #roop.globals.execution_providers = ['CUDAExecutionProvider']
+    roop.globals.execution_providers = ['CPUExecutionProvider']
+    roop.globals.execution_threads = 8
+    roop.globals.frame_processors = ['face_swapper', 'face_enhancer']
+    roop.globals.headless = True
+    roop.globals.keep_fps = True
+    roop.globals.keep_frames = True
+    roop.globals.log_level = 'error'
+    roop.globals.many_faces = False
+    roop.globals.max_memory = None
+    roop.globals.output_path = 'media_sub_out.mp4'
+    roop.globals.output_video_encoder = 'libx264'
+    roop.globals.output_video_quality = 35
+    roop.globals.reference_face_position = 0
+    roop.globals.reference_frame_number = 0
+    roop.globals.similar_face_distance = 1.5
+    roop.globals.skip_audio = False
+    roop.globals.source_path = face_path
+    roop.globals.target_path = 'media_sub.mp4'
+    roop.globals.temp_frame_format = 'jpg'
+    roop.globals.temp_frame_quality = 0
+
+    #start()
+    shutil.copy2('media_sub.mp4', 'media_out.mp4')
+    return
+
+    ffmpeg_command = [
+            'ffmpeg',
+            '-i', input_video_filename,
+            '-i', 'media_sub_out.mp4',
+            '-filter_complex', f'[0:v][1:v]overlay=x={rect_x}:y={rect_y}:enable=\'between(t,0,10)\'',
+            '-c:a', 'copy',
+            '-y',  # 强制覆盖
+            'media_out.mp4'
+            ]
+
+    subprocess.run(ffmpeg_command)
+
+def proc_image(input_image_filename, face_path):
+  #  roop.globals.execution_providers = ['CUDAExecutionProvider']
+    roop.globals.execution_providers = ['CPUExecutionProvider']
+    roop.globals.execution_threads = 8
+    roop.globals.frame_processors = ['face_swapper', 'face_enhancer']
+    roop.globals.headless = True
+    roop.globals.keep_fps = True
+    roop.globals.keep_frames = True
+    roop.globals.log_level = 'error'
+    roop.globals.many_faces = False
+    roop.globals.max_memory = None
+    roop.globals.output_path = 'media_out.png'
+    roop.globals.output_video_encoder = 'libx264'
+    roop.globals.output_video_quality = 35
+    roop.globals.reference_face_position = 0
+    roop.globals.reference_frame_number = 0
+    roop.globals.similar_face_distance = 1.5
+    roop.globals.skip_audio = False
+    roop.globals.source_path = face_path
+    roop.globals.target_path = input_image_filename
+    roop.globals.temp_frame_format = 'jpg'
+    roop.globals.temp_frame_quality = 0
+  #  start()
+
+def upload_file(url, file_path):
+    chunk_size = 1024 * 1024  # 1MB
+    total_chunks = -(-os.path.getsize(file_path) // chunk_size)  # 總分片數，無條件取整
+    current_chunk = 0
+    data = {'name': '', 'link': ''}
+    
+    with open(file_path, 'rb') as f:
+        while current_chunk < total_chunks:
+            start = current_chunk * chunk_size
+            end = min(start + chunk_size, os.path.getsize(file_path))
+            chunk = f.read(end - start)
+            
+            files = {
+                'file': (os.path.basename(file_path), chunk),
+                'chunkNumber': (None, str(current_chunk + 1)),
+                'totalChunks': (None, str(total_chunks)),
+                'fileName': (None, os.path.basename(file_path))
+            }
+            
+            response = requests.post(url, files=files)
+            res_json = response.json()
+            if res_json['status'] != 'success':
+                print(f'Upload error: Chunk {current_chunk + 1} / {total_chunks}')
+                return data
+            
+            current_chunk += 1
+            data = res_json
+        
+        data['name'] = os.path.basename(file_path)
+        data['hash'] = 'hash_placeholder'  # 請替換為計算哈希值的方法
+        print(f'文件大小：{os.path.getsize(file_path)}  {data["size"]}')
+        # 調用捕獲視頻畫面並上傳縮略圖的函數，並將返回的數據更新到 data 對象中
+        # tres = capture_video_frame_and_upload(file_path)
+        # data['thumb'] = tres['thumb']
+        
+        print('Upload success!')
+        return data
+
+
+
+def download_file(url, filename):
+    response = requests.get(url)
+    if response.status_code == 200:
+        with open(filename, 'wb') as file:
+            file.write(response.content)
+            print(f"File '{filename}' downloaded and saved successfully.")
+    else:
+        print(f"Error downloading file from {url}")
+
+import requests
+
+def upload_image(upload_url, image_path):
+    files = {'file': (image_path, open(image_path, 'rb'), 'image/jpeg')}
+    try:
+        response = requests.post(upload_url, files=files)
+        response_json = response.json()  # 尝试解析JSON响应
+        
+        if response_json['status'] == 'success':
+            print('Upload successful')
+            return response_json
+        else:
+            print('Upload failed')
+            print(response_json)
+    except Exception as e:
+        print('Error:', str(e))
+
+
+def generate_video_thumbnail(video_path, thumbnail_path, max_size=256):
+    cap = cv2.VideoCapture(video_path)
+    ret, frame = cap.read()
+    
+    if ret:
+        # 获取视频帧的宽和高
+        frame_height, frame_width, _ = frame.shape
+        
+        # 调整缩略图的大小
+        if frame_width > max_size or frame_height > max_size:
+            if frame_width > frame_height:
+                new_width = max_size
+                new_height = int(frame_height * (max_size / frame_width))
+            else:
+                new_height = max_size
+                new_width = int(frame_width * (max_size / frame_height))
+            frame = cv2.resize(frame, (new_width, new_height))
+        
+        # 保存缩略图
+        cv2.imwrite(thumbnail_path, frame)
+    
+    cap.release()
+
+def callApi(name, data):
+    try:
+        #TODO 做簽名認證
+        response = requests.post('http://192.3.153.102:3000/api/' + name, data)
+        response_json = response.json()
+        if response.status_code == 200:
+            print('Request successful')
+            return response_json
+        else:
+            print('Request failed')
+            print(response_json.get('message', 'Unknown error'))
+    except Exception as e:
+        print('Error:', str(e))
+
+
+def work():
+
+    data = callApi("workerGetTask", {})
+    if data["code"] != 0:
+        print("Error: Code is not 0.")
+        time.sleep(3)
+        return
+    
+    media_file_url = data['data']['media']['file_url']
+    face_file_url = data['data']['face']['file_url']
+    
+    media_filename = "media" + os.path.splitext(media_file_url)[1]
+    face_filename = "face" + os.path.splitext(face_file_url)[1]
+        
+    download_file(media_file_url, media_filename)
+    download_file(face_file_url, face_filename)
+        
+    if media_filename.lower().endswith(('.mp4', '.avi', '.mkv')):
+        proc_video(media_filename, face_filename)
+        file_path = 'media_out.mp4'
+        thumb_file_path = 'thumb_media.jpg'
+        generate_video_thumbnail(file_path, thumb_file_path)
+        upload_video_res = upload_file('http://192.3.153.102/upload.php?m=mp4', file_path)
+        upload_image_res = upload_image('http://192.3.153.102/upload.php?m=thumb', thumb_file_path)
+
+        print('Upload result:', upload_video_res, upload_image_res)
+        api_res = callApi("wokerAddMedia", {'user_id':data['data']['user_id'], 'file_url':upload_video_res['link'], 'thumb_url':upload_image_res['thumb'], 'file_hash':upload_video_res['size']})
+        print('Api result:', api_res)
+        callApi("workerUpdateTask", {'task_id':data['data']['_id'], 'state':3, 'log':'finish'})
+        
+    else:
+        proc_image(media_filename, face_filename)
+        file_path = 'media_out.png'
+        upload_res = upload_image('http://192.3.153.102/upload.php?m=png', file_path)
+        print('Upload result:', upload_res)
+        api_res = callApi("wokerAddMedia", {'user_id':data['data']['user_id'], 'file_url':upload_res['link'], 'thumb_url':upload_res['thumb'], 'file_hash':'121212'})
+        print('Api result:', api_res)
+        callApi("workerUpdateTask", {'task_id':data['data']['_id'], 'state':3, 'log':'finish'})
+
+
 def run() -> None:
     parse_args()
-    print('roop.globals:', roop.globals)
     if not pre_check():
         return
     for frame_processor in get_frame_processors_modules(roop.globals.frame_processors):
         if not frame_processor.pre_check():
             return
     limit_resources()
-    if roop.globals.headless:
-        start()
-    else:
-        window = ui.init(start, destroy)
-        window.mainloop()
+    while True:
+        work()
+
