@@ -450,7 +450,7 @@ def work():
         file_path = 'media_out.mp4'
         thumb_file_path = 'thumb_media.jpg'
         generate_video_thumbnail(file_path, thumb_file_path)
-        upload_video_res = upload_file('http://192.3.153.102/upload.php?m=mp4', file_path)
+        upload_video_res = upload_file('http://192.3.153.102/upload.php?m=media', file_path)
         upload_image_res = upload_image('http://192.3.153.102/upload.php?m=thumb', thumb_file_path)
 
         print('Upload result:', upload_video_res, upload_image_res)
