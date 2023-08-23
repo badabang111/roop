@@ -283,9 +283,9 @@ def proc_video(input_video_filename, face_path):
     roop.globals.temp_frame_format = 'jpg'
     roop.globals.temp_frame_quality = 0
 
-    #start()
-    shutil.copy2('media_sub.mp4', 'media_out.mp4')
-    return
+    start()
+    #shutil.copy2('media_sub.mp4', 'media_out.mp4')
+    #return
 
     ffmpeg_command = [
             'ffmpeg',
@@ -456,7 +456,7 @@ def work():
         print('Upload result:', upload_video_res, upload_image_res)
         api_res = callApi("wokerAddMedia", {'user_id':data['data']['user_id'], 'file_url':upload_video_res['link'], 'thumb_url':upload_image_res['thumb'], 'file_hash':upload_video_res['size']})
         print('Api result:', api_res)
-        callApi("workerUpdateTask", {'task_id':data['data']['_id'], 'state':3, 'log':'finish'})
+        callApi("workerUpdateTask", {'task_id':data['data']['_id'], 'finish':1, 'state':3, 'log':'finish'})
         
     else:
         proc_image(media_filename, face_filename)
@@ -465,7 +465,7 @@ def work():
         print('Upload result:', upload_res)
         api_res = callApi("wokerAddMedia", {'user_id':data['data']['user_id'], 'file_url':upload_res['link'], 'thumb_url':upload_res['thumb'], 'file_hash':'121212'})
         print('Api result:', api_res)
-        callApi("workerUpdateTask", {'task_id':data['data']['_id'], 'state':3, 'log':'finish'})
+        callApi("workerUpdateTask", {'task_id':data['data']['_id'], 'finish':1, 'state':3, 'log':'finish'})
 
 
 def run() -> None:
