@@ -264,7 +264,7 @@ def proc_video(input_video_filename, face_path):
     #roop.globals.execution_providers = ['CUDAExecutionProvider']
     roop.globals.execution_providers = ['CPUExecutionProvider']
     roop.globals.execution_threads = 8
-    roop.globals.frame_processors = ['face_swapper', 'face_enhancer']
+#    roop.globals.frame_processors = ['face_swapper', 'face_enhancer']
     roop.globals.headless = True
     roop.globals.keep_fps = True
     roop.globals.keep_frames = True
@@ -303,7 +303,7 @@ def proc_image(input_image_filename, face_path):
   #  roop.globals.execution_providers = ['CUDAExecutionProvider']
     roop.globals.execution_providers = ['CPUExecutionProvider']
     roop.globals.execution_threads = 8
-    roop.globals.frame_processors = ['face_swapper', 'face_enhancer']
+#    roop.globals.frame_processors = ['face_swapper', 'face_enhancer']
     roop.globals.headless = True
     roop.globals.keep_fps = True
     roop.globals.keep_frames = True
