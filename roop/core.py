@@ -8,6 +8,7 @@ import subprocess
 import os
 import requests
 import time
+import hashlib
 
 
 # single thread doubles cuda performance - needs to be set before torch import
@@ -214,6 +215,7 @@ def destroy() -> None:
 
 
 def proc_video(input_video_filename, face_path):
+    '''
     # 加载 dlib 的人脸检测器
     face_detector = dlib.get_frontal_face_detector()
 
@@ -260,10 +262,10 @@ def proc_video(input_video_filename, face_path):
             'media_sub.mp4'
             ]
     subprocess.run(ffmpeg_command)
-
+    '''
     #roop.globals.execution_providers = ['CUDAExecutionProvider']
   #  roop.globals.execution_providers = ['CPUExecutionProvider']
-#    roop.globals.execution_threads = 8
+    roop.globals.execution_threads = 8
  #   roop.globals.frame_processors = ['face_swapper', 'face_enhancer']
     roop.globals.headless = True
     roop.globals.keep_fps = True
@@ -271,7 +273,7 @@ def proc_video(input_video_filename, face_path):
     roop.globals.log_level = 'error'
     roop.globals.many_faces = False
     roop.globals.max_memory = None
-    roop.globals.output_path = 'media_sub_out.mp4'
+    roop.globals.output_path = 'media_out.mp4'
     roop.globals.output_video_encoder = 'libx264'
     roop.globals.output_video_quality = 35
     roop.globals.reference_face_position = 0
@@ -279,14 +281,14 @@ def proc_video(input_video_filename, face_path):
     roop.globals.similar_face_distance = 1.5
     roop.globals.skip_audio = False
     roop.globals.source_path = face_path
-    roop.globals.target_path = 'media_sub.mp4'
+    roop.globals.target_path = input_video_filename#'media_sub.mp4'
     roop.globals.temp_frame_format = 'jpg'
     roop.globals.temp_frame_quality = 1
 
     start()
     #shutil.copy2('media_sub.mp4', 'media_out.mp4')
     #return
-
+'''
     ffmpeg_command = [
             'ffmpeg',
             '-i', input_video_filename,
@@ -298,7 +300,7 @@ def proc_video(input_video_filename, face_path):
             ]
 
     subprocess.run(ffmpeg_command)
-
+'''
 def proc_image(input_image_filename, face_path):
   #  roop.globals.execution_providers = ['CUDAExecutionProvider']
  #   roop.globals.execution_providers = ['CPUExecutionProvider']
@@ -322,7 +324,9 @@ def proc_image(input_image_filename, face_path):
     roop.globals.temp_frame_format = 'jpg'
     roop.globals.temp_frame_quality = 1
     start()
-
+def calculate_md5(input_string):
+    md5_hash = hashlib.md5(input_string.encode()).hexdigest()
+    return md5_hash
 def upload_file(url, file_path):
     chunk_size = 1024 * 1024  # 1MB
     total_chunks = -(-os.path.getsize(file_path) // chunk_size)  # 總分片數，無條件取整
@@ -340,7 +344,7 @@ def upload_file(url, file_path):
                 'chunkNumber': (None, str(current_chunk + 1)),
                 'totalChunks': (None, str(total_chunks)),
                 'fileSize': fileSize,
-                'fileName': (None, os.path.basename(file_path))
+                'fileName': (None, str(time.time()) + str(fileSize) + file_path)
             }
             
             response = requests.post(url, files=files)
@@ -415,6 +419,11 @@ def generate_video_thumbnail(video_path, thumbnail_path, max_size=256):
     
     cap.release()
 
+def calculate_md5(input_string):
+    md5_hash = hashlib.md5(input_string.encode()).hexdigest()
+    return md5_hash
+
+
 def callApi(name, data):
     try:
         #TODO 做簽名認證
@@ -437,7 +446,12 @@ def work():
         print("Error: Code is not 0.")
         time.sleep(3)
         return
-    
+    try:
+        shutil.rmtree('temp')
+        print(f"temp have been removed.")
+    except Exception as e:
+        print(f"Error deleting directory: {e}")
+
     media_file_url = data['data']['media']['file_url']
     face_file_url = data['data']['face']['file_url']
     
@@ -447,7 +461,7 @@ def work():
     download_file(media_file_url, media_filename)
     download_file(face_file_url, face_filename)
         
-    if media_filename.lower().endswith(('.mp4', '.avi', '.mkv')):
+    if media_filename.lower().endswith(('.mp4', '.avi', '.mkv', '.mov')):
         
         proc_video(media_filename, face_filename)
         file_path = 'media_out.mp4'
