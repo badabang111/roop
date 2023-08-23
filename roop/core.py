@@ -321,7 +321,7 @@ def proc_image(input_image_filename, face_path):
     roop.globals.target_path = input_image_filename
     roop.globals.temp_frame_format = 'jpg'
     roop.globals.temp_frame_quality = 0
-  #  start()
+    start()
 
 def upload_file(url, file_path):
     chunk_size = 1024 * 1024  # 1MB
