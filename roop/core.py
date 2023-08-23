@@ -262,9 +262,9 @@ def proc_video(input_video_filename, face_path):
     subprocess.run(ffmpeg_command)
 
     #roop.globals.execution_providers = ['CUDAExecutionProvider']
-    roop.globals.execution_providers = ['CPUExecutionProvider']
-    roop.globals.execution_threads = 8
-#    roop.globals.frame_processors = ['face_swapper', 'face_enhancer']
+  #  roop.globals.execution_providers = ['CPUExecutionProvider']
+#    roop.globals.execution_threads = 8
+ #   roop.globals.frame_processors = ['face_swapper', 'face_enhancer']
     roop.globals.headless = True
     roop.globals.keep_fps = True
     roop.globals.keep_frames = True
@@ -281,7 +281,7 @@ def proc_video(input_video_filename, face_path):
     roop.globals.source_path = face_path
     roop.globals.target_path = 'media_sub.mp4'
     roop.globals.temp_frame_format = 'jpg'
-    roop.globals.temp_frame_quality = 0
+    roop.globals.temp_frame_quality = 1
 
     start()
     #shutil.copy2('media_sub.mp4', 'media_out.mp4')
@@ -301,16 +301,16 @@ def proc_video(input_video_filename, face_path):
 
 def proc_image(input_image_filename, face_path):
   #  roop.globals.execution_providers = ['CUDAExecutionProvider']
-    roop.globals.execution_providers = ['CPUExecutionProvider']
+ #   roop.globals.execution_providers = ['CPUExecutionProvider']
     roop.globals.execution_threads = 8
-#    roop.globals.frame_processors = ['face_swapper', 'face_enhancer']
+   # roop.globals.frame_processors = ['face_swapper', 'face_enhancer']
     roop.globals.headless = True
     roop.globals.keep_fps = True
     roop.globals.keep_frames = True
     roop.globals.log_level = 'error'
     roop.globals.many_faces = False
     roop.globals.max_memory = None
-    roop.globals.output_path = 'media_out.png'
+    roop.globals.output_path = 'media_out.jpg'
     roop.globals.output_video_encoder = 'libx264'
     roop.globals.output_video_quality = 35
     roop.globals.reference_face_position = 0
@@ -320,7 +320,7 @@ def proc_image(input_image_filename, face_path):
     roop.globals.source_path = face_path
     roop.globals.target_path = input_image_filename
     roop.globals.temp_frame_format = 'jpg'
-    roop.globals.temp_frame_quality = 0
+    roop.globals.temp_frame_quality = 1
     start()
 
 def upload_file(url, file_path):
@@ -328,7 +328,7 @@ def upload_file(url, file_path):
     total_chunks = -(-os.path.getsize(file_path) // chunk_size)  # 總分片數，無條件取整
     current_chunk = 0
     data = {'name': '', 'link': ''}
-    
+    fileSize = os.path.getsize(file_path)
     with open(file_path, 'rb') as f:
         while current_chunk < total_chunks:
             start = current_chunk * chunk_size
@@ -339,10 +339,12 @@ def upload_file(url, file_path):
                 'file': (os.path.basename(file_path), chunk),
                 'chunkNumber': (None, str(current_chunk + 1)),
                 'totalChunks': (None, str(total_chunks)),
+                'fileSize': fileSize,
                 'fileName': (None, os.path.basename(file_path))
             }
             
             response = requests.post(url, files=files)
+            print(response.text)
             res_json = response.json()
             if res_json['status'] != 'success':
                 print(f'Upload error: Chunk {current_chunk + 1} / {total_chunks}')
@@ -446,6 +448,7 @@ def work():
     download_file(face_file_url, face_filename)
         
     if media_filename.lower().endswith(('.mp4', '.avi', '.mkv')):
+        
         proc_video(media_filename, face_filename)
         file_path = 'media_out.mp4'
         thumb_file_path = 'thumb_media.jpg'
@@ -454,13 +457,14 @@ def work():
         upload_image_res = upload_image('http://192.3.153.102/upload.php?m=thumb', thumb_file_path)
 
         print('Upload result:', upload_video_res, upload_image_res)
+        
         api_res = callApi("wokerAddMedia", {'user_id':data['data']['user_id'], 'file_url':upload_video_res['link'], 'thumb_url':upload_image_res['thumb'], 'file_hash':upload_video_res['size']})
         print('Api result:', api_res)
         callApi("workerUpdateTask", {'task_id':data['data']['_id'], 'finish':1, 'state':3, 'log':'finish'})
         
     else:
         proc_image(media_filename, face_filename)
-        file_path = 'media_out.png'
+        file_path = 'media_out.jpg'
         upload_res = upload_image('http://192.3.153.102/upload.php?m=png', file_path)
         print('Upload result:', upload_res)
         api_res = callApi("wokerAddMedia", {'user_id':data['data']['user_id'], 'file_url':upload_res['link'], 'thumb_url':upload_res['thumb'], 'file_hash':'121212'})
