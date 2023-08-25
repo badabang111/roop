@@ -163,15 +163,20 @@ def start() -> None:
     update_status('Creating temporary resources...')
     create_temp(roop.globals.target_path)
     # extract frames
-    if roop.globals.keep_fps:
-        fps = detect_fps(roop.globals.target_path)
-        update_status(f'Extracting frames with {fps} FPS...')
-        extract_frames(roop.globals.target_path, fps)
-    else:
-        update_status('Extracting frames with 30 FPS...')
-        extract_frames(roop.globals.target_path)
+
+    fps = detect_fps(roop.globals.target_path)
+    update_status(f'Extracting frames with {fps} FPS...')
+    if fps > 30:
+        fps = 30;
+    extract_frames(roop.globals.target_path, fps)
+    
     # process frame
     temp_frame_paths = get_temp_frame_paths(roop.globals.target_path)
+
+    #总帧数传上去
+    print('发送总帧数:', len(temp_frame_paths))
+    addLog(0, 2, 'frame', 0, len(temp_frame_paths))
+
     if temp_frame_paths:
         for frame_processor in get_frame_processors_modules(roop.globals.frame_processors):
             update_status('Progressing...', frame_processor.NAME)
@@ -211,10 +216,11 @@ def start() -> None:
 def destroy() -> None:
     if roop.globals.target_path:
         clean_temp(roop.globals.target_path)
-    sys.exit()
 
 
-def proc_video(input_video_filename, face_path):
+def proc_video(input_video_filename, face_path, out_video_filename):
+#    shutil.copy2(input_video_filename, out_video_filename)
+#    return
     '''
     # 加载 dlib 的人脸检测器
     face_detector = dlib.get_frontal_face_detector()
@@ -263,6 +269,7 @@ def proc_video(input_video_filename, face_path):
             ]
     subprocess.run(ffmpeg_command)
     '''
+    
     #roop.globals.execution_providers = ['CUDAExecutionProvider']
   #  roop.globals.execution_providers = ['CPUExecutionProvider']
     roop.globals.execution_threads = 8
@@ -286,8 +293,7 @@ def proc_video(input_video_filename, face_path):
     roop.globals.temp_frame_quality = 1
 
     start()
-    #shutil.copy2('media_sub.mp4', 'media_out.mp4')
-    #return
+    
 '''
     ffmpeg_command = [
             'ffmpeg',
@@ -301,7 +307,7 @@ def proc_video(input_video_filename, face_path):
 
     subprocess.run(ffmpeg_command)
 '''
-def proc_image(input_image_filename, face_path):
+def proc_image(input_image_filename, face_path, out_image_filename):
   #  roop.globals.execution_providers = ['CUDAExecutionProvider']
  #   roop.globals.execution_providers = ['CPUExecutionProvider']
     roop.globals.execution_threads = 8
@@ -312,7 +318,7 @@ def proc_image(input_image_filename, face_path):
     roop.globals.log_level = 'error'
     roop.globals.many_faces = False
     roop.globals.max_memory = None
-    roop.globals.output_path = 'media_out.jpg'
+    roop.globals.output_path = out_image_filename
     roop.globals.output_video_encoder = 'libx264'
     roop.globals.output_video_quality = 35
     roop.globals.reference_face_position = 0
@@ -438,9 +444,11 @@ def callApi(name, data):
     except Exception as e:
         print('Error:', str(e))
 
+def addLog(finish, state, log, process, total_frame = 0):
+    callApi("workerUpdateTask", {'task_id':taskData['_id'], 'total_frame':total_frame,'finish':finish, 'state':state, 'log':log, 'process':process})
 
 def work():
-
+    global taskData
     data = callApi("workerGetTask", {})
     if data["code"] != 0:
         print("Error: Code is not 0.")
@@ -452,6 +460,7 @@ def work():
     except Exception as e:
         print(f"Error deleting directory: {e}")
 
+    taskData = data['data']
     media_file_url = data['data']['media']['file_url']
     face_file_url = data['data']['face']['file_url']
     
@@ -461,30 +470,35 @@ def work():
     download_file(media_file_url, media_filename)
     download_file(face_file_url, face_filename)
         
-    if media_filename.lower().endswith(('.mp4', '.avi', '.mkv', '.mov')):
-        
-        proc_video(media_filename, face_filename)
-        file_path = 'media_out.mp4'
+    if media_filename.lower().endswith(('.mp4', '.m4v', '.mkv', '.avi', '.mov', '.webm', '.mpeg', '.mpg', '.wmv', '.flv', '.asf', '.3gp', '.3g2', '.ogg', '.vob', '.rmvb', '.ts', '.m2ts', '.divx', '.xvid', '.h264', '.avc', '.hevc', '.vp9', '.avchd')):
+        out_file_path = 'media_out.mp4'
+        proc_video(media_filename, face_filename, out_file_path)
         thumb_file_path = 'thumb_media.jpg'
-        generate_video_thumbnail(file_path, thumb_file_path)
-        upload_video_res = upload_file('http://192.3.153.102/upload.php?m=media', file_path)
+        generate_video_thumbnail(out_file_path, thumb_file_path)
+        addLog(0, 2, 'finish quickly', 99)
+        upload_video_res = upload_file('http://192.3.153.102/upload.php?m=media', out_file_path)
         upload_image_res = upload_image('http://192.3.153.102/upload.php?m=thumb', thumb_file_path)
 
         print('Upload result:', upload_video_res, upload_image_res)
         
         api_res = callApi("wokerAddMedia", {'user_id':data['data']['user_id'], 'file_url':upload_video_res['link'], 'thumb_url':upload_image_res['thumb'], 'file_hash':upload_video_res['size']})
         print('Api result:', api_res)
-        callApi("workerUpdateTask", {'task_id':data['data']['_id'], 'finish':1, 'state':3, 'log':'finish'})
+        addLog(1, 3, 'finish', 100)
+        return
+    if media_filename.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif', '.webp', '.ppm', '.pgm', '.pbm', '.pnm', '.heif', '.bat', '.bpg', '.ico', '.svg', '.eps', '.pdf')):
+        out_file_path = 'media_out.jpg'
+        if os.path.splitext(media_file_url)[1] == ".gif":
+            out_file_path = 'media_out.gif'
+        proc_image(media_filename, face_filename, out_file_path)
+        addLog(0, 2, 'finish quickly', 99)
+        upload_res = upload_image('http://192.3.153.102/upload.php?m=png', out_file_path)
         
-    else:
-        proc_image(media_filename, face_filename)
-        file_path = 'media_out.jpg'
-        upload_res = upload_image('http://192.3.153.102/upload.php?m=png', file_path)
         print('Upload result:', upload_res)
         api_res = callApi("wokerAddMedia", {'user_id':data['data']['user_id'], 'file_url':upload_res['link'], 'thumb_url':upload_res['thumb'], 'file_hash':'121212'})
         print('Api result:', api_res)
-        callApi("workerUpdateTask", {'task_id':data['data']['_id'], 'finish':1, 'state':3, 'log':'finish'})
-
+        addLog(1, 3, 'finish', 100)
+        return
+    addLog(1, 3, 'wrong file format', 100)
 
 def run() -> None:
     parse_args()
