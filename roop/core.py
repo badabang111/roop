@@ -339,6 +339,7 @@ def upload_file(url, file_path):
     current_chunk = 0
     data = {'name': '', 'link': ''}
     fileSize = os.path.getsize(file_path)
+    upFileName = str(time.time()) + str(fileSize) + file_path
     with open(file_path, 'rb') as f:
         while current_chunk < total_chunks:
             start = current_chunk * chunk_size
@@ -350,7 +351,7 @@ def upload_file(url, file_path):
                 'chunkNumber': (None, str(current_chunk + 1)),
                 'totalChunks': (None, str(total_chunks)),
                 'fileSize': fileSize,
-                'fileName': (None, str(time.time()) + str(fileSize) + file_path)
+                'fileName': (None, upFileName)
             }
             
             response = requests.post(url, files=files)
@@ -471,8 +472,9 @@ def work():
     download_file(face_file_url, face_filename)
         
     if media_filename.lower().endswith(('.mp4', '.m4v', '.mkv', '.avi', '.mov', '.webm', '.mpeg', '.mpg', '.wmv', '.flv', '.asf', '.3gp', '.3g2', '.ogg', '.vob', '.rmvb', '.ts', '.m2ts', '.divx', '.xvid', '.h264', '.avc', '.hevc', '.vp9', '.avchd')):
-        out_file_path = 'media_out.mp4'
-        proc_video(media_filename, face_filename, out_file_path)
+        #out_file_path = 'media_out.mp4'
+        #proc_video(media_filename, face_filename, out_file_path)
+        out_file_path = 'media.mp4'
         thumb_file_path = 'thumb_media.jpg'
         generate_video_thumbnail(out_file_path, thumb_file_path)
         addLog(0, 2, 'finish quickly', 99)
