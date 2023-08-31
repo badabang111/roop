@@ -496,7 +496,7 @@ def work():
         upload_res = upload_image('http://192.3.153.102/upload.php?m=png', out_file_path)
         
         print('Upload result:', upload_res)
-        api_res = callApi("wokerAddMedia", {'user_id':data['data']['user_id'], 'file_url':upload_res['link'], 'thumb_url':upload_res['thumb'], 'file_hash':'121212'})
+        api_res = callApi("wokerAddMedia", {'user_id':data['data']['user_id'], 'media_id':data['data']['finish_media_id'], 'file_url':upload_res['link'], 'thumb_url':upload_res['thumb'], 'file_hash':'121212'})
         print('Api result:', api_res)
         addLog(1, 3, 'finish', 100)
         return
