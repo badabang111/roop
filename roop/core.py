@@ -463,6 +463,7 @@ def gif2mp4(gif, mp4):
 def mp42gif(input_mp4_filename, output_gif_filename):
     ffmpeg_command = [
         'ffmpeg',
+        '-y',  # 强制覆盖
         '-i', input_mp4_filename,
         '-vf', 'fps=10,scale=320:-1:flags=lanczos',  # 设置帧速率和尺寸等参数
         output_gif_filename
