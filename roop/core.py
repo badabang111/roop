@@ -447,7 +447,28 @@ def callApi(name, data):
 
 def addLog(finish, state, log, process, total_frame = 0):
     callApi("workerUpdateTask", {'task_id':taskData['_id'], 'total_frame':total_frame,'finish':finish, 'state':state, 'log':log, 'process':process})
-
+def gif2mp4(gif, mp4):
+    ffmpeg_command = [
+        'ffmpeg',
+        '-i', gif,
+        '-c:v', 'libx264',  # 使用H.264编码器
+        '-pix_fmt', 'yuv420p',  # 设置像素格式，通常需要
+        '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',  # 将高度和宽度调整为2的倍数
+        '-y',  # 强制覆盖
+        mp4
+    ]
+    subprocess.run(ffmpeg_command)
+  
+    
+def mp42gif(input_mp4_filename, output_gif_filename):
+    ffmpeg_command = [
+        'ffmpeg',
+        '-i', input_mp4_filename,
+        '-vf', 'fps=10,scale=320:-1:flags=lanczos',  # 设置帧速率和尺寸等参数
+        output_gif_filename
+    ]
+    subprocess.run(ffmpeg_command)
+    
 def work():
     global taskData
     data = callApi("workerGetTask", {})
@@ -457,6 +478,13 @@ def work():
         return
     try:
         shutil.rmtree('temp')
+        shutil.rmtree('face.png')
+        shutil.rmtree('media.gif')
+        shutil.rmtree('media.png')
+        shutil.rmtree('media.mp4')
+        shutil.rmtree('media_out.gif')
+        shutil.rmtree('media_out.mp4')
+        shutil.rmtree('media_out.jpg')
         print(f"temp have been removed.")
     except Exception as e:
         print(f"Error deleting directory: {e}")
@@ -470,14 +498,26 @@ def work():
         
     download_file(media_file_url, media_filename)
     download_file(face_file_url, face_filename)
+
+    extName = os.path.splitext(media_file_url)[1].lower()
         
-    if media_filename.lower().endswith(('.mp4', '.m4v', '.mkv', '.avi', '.mov', '.webm', '.mpeg', '.mpg', '.wmv', '.flv', '.asf', '.3gp', '.3g2', '.ogg', '.vob', '.rmvb', '.ts', '.m2ts', '.divx', '.xvid', '.h264', '.avc', '.hevc', '.vp9', '.avchd')):
+    if media_filename.lower().endswith(('.gif','.mp4', '.m4v', '.mkv', '.avi', '.mov', '.webm', '.mpeg', '.mpg', '.wmv', '.flv', '.asf', '.3gp', '.3g2', '.ogg', '.vob', '.rmvb', '.ts', '.m2ts', '.divx', '.xvid', '.h264', '.avc', '.hevc', '.vp9', '.avchd')):
+        
         out_file_path = 'media_out.mp4'
+        print('文件后缀：', extName)
+        if(extName.endswith('gif')):
+            media_filename = 'media.mp4'
+            gif2mp4('media.gif', 'media.mp4')
+        
         proc_video(media_filename, face_filename, out_file_path)
         #out_file_path = 'media.mp4'
         thumb_file_path = 'thumb_media.jpg'
         generate_video_thumbnail(out_file_path, thumb_file_path)
         addLog(0, 2, 'finish quickly', 99)
+        if(extName == '.gif'):
+            mp42gif('media_out.mp4', 'media_out.gif')
+            out_file_path = 'media_out.gif'
+        
         upload_video_res = upload_file('http://192.3.153.102/upload.php?m=media', out_file_path)
         upload_image_res = upload_image('http://192.3.153.102/upload.php?m=thumb', thumb_file_path)
 
@@ -487,13 +527,13 @@ def work():
         print('Api result:', api_res)
         addLog(1, 3, 'finish', 100)
         return
-    if media_filename.lower().endswith(('.gif','.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif', '.webp', '.ppm', '.pgm', '.pbm', '.pnm', '.heif', '.bat', '.bpg', '.ico', '.svg', '.eps', '.pdf')):
+    if media_filename.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif', '.webp', '.ppm', '.pgm', '.pbm', '.pnm', '.heif', '.bat', '.bpg', '.ico', '.svg', '.eps', '.pdf')):
         out_file_path = 'media_out.jpg'
-        if os.path.splitext(media_file_url)[1] == ".gif":
-            out_file_path = 'media_out.gif'
+        real_out_file_path = 'media_out' + extName
         proc_image(media_filename, face_filename, out_file_path)
+
         addLog(0, 2, 'finish quickly', 99)
-        upload_res = upload_image('http://192.3.153.102/upload.php?m=png', out_file_path)
+        upload_res = upload_image('http://192.3.153.102/upload.php?m=png', real_out_file_path)
         
         print('Upload result:', upload_res)
         api_res = callApi("wokerAddMedia", {'user_id':data['data']['user_id'], 'media_id':data['data']['finish_media_id'], 'file_url':upload_res['link'], 'thumb_url':upload_res['thumb'], 'file_hash':'121212'})
