@@ -487,7 +487,7 @@ def work():
         print('Api result:', api_res)
         addLog(1, 3, 'finish', 100)
         return
-    if media_filename.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif', '.webp', '.ppm', '.pgm', '.pbm', '.pnm', '.heif', '.bat', '.bpg', '.ico', '.svg', '.eps', '.pdf')):
+    if media_filename.lower().endswith(('.gif','.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif', '.webp', '.ppm', '.pgm', '.pbm', '.pnm', '.heif', '.bat', '.bpg', '.ico', '.svg', '.eps', '.pdf')):
         out_file_path = 'media_out.jpg'
         if os.path.splitext(media_file_url)[1] == ".gif":
             out_file_path = 'media_out.gif'
