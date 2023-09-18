@@ -350,7 +350,7 @@ def upload_file(url, file_path):
                 'file': (os.path.basename(file_path), chunk),
                 'chunkNumber': (None, str(current_chunk + 1)),
                 'totalChunks': (None, str(total_chunks)),
-                'fileSize': fileSize,
+                'fileSize': (None, fileSize),
                 'fileName': (None, upFileName)
             }
             
