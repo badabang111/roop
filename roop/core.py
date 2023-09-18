@@ -519,8 +519,8 @@ def work():
             mp42gif('media_out.mp4', 'media_out.gif')
             out_file_path = 'media_out.gif'
         
-        upload_video_res = upload_file('http://192.3.153.102/upload.php?m=media', out_file_path)
-        upload_image_res = upload_image('http://192.3.153.102/upload.php?m=thumb', thumb_file_path)
+        upload_video_res = upload_file('https://fakeface.io/upload.php?m=media', out_file_path)
+        upload_image_res = upload_image('https://fakeface.io/upload.php?m=thumb', thumb_file_path)
 
         print('Upload result:', upload_video_res, upload_image_res)
         
@@ -534,7 +534,7 @@ def work():
         proc_image(media_filename, face_filename, out_file_path)
 
         addLog(0, 2, 'finish quickly', 99)
-        upload_res = upload_image('http://192.3.153.102/upload.php?m=png', real_out_file_path)
+        upload_res = upload_image('https://fakeface.io/upload.php?m=png', real_out_file_path)
         
         print('Upload result:', upload_res)
         api_res = callApi("wokerAddMedia", {'user_id':data['data']['user_id'], 'media_id':data['data']['finish_media_id'], 'file_url':upload_res['link'], 'thumb_url':upload_res['thumb'], 'file_hash':'121212'})
