@@ -403,7 +403,7 @@ def upload_image(upload_url, image_path):
         print('Error:', str(e))
 
 
-def generate_video_thumbnail(video_path, thumbnail_path, max_size=256):
+def generate_video_thumbnail(video_path, thumbnail_path, max_size=512):
     cap = cv2.VideoCapture(video_path)
     ret, frame = cap.read()
     
@@ -469,7 +469,15 @@ def mp42gif(input_mp4_filename, output_gif_filename):
         output_gif_filename
     ]
     subprocess.run(ffmpeg_command)
-    
+
+def delete_files(file_paths):
+    for file_path in file_paths:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            print(f"文件 '{file_path}' 已被删除。")
+        else:
+            print(f"文件 '{file_path}' 不存在，无需删除。")
+   
 def work():
     global taskData
     data = callApi("workerGetTask", {})
@@ -478,21 +486,26 @@ def work():
         time.sleep(3)
         return
     try:
-        shutil.rmtree('temp')
-        shutil.rmtree('face.png')
-        shutil.rmtree('media.gif')
-        shutil.rmtree('media.png')
-        shutil.rmtree('media.mp4')
-        shutil.rmtree('media_out.gif')
-        shutil.rmtree('media_out.mp4')
-        shutil.rmtree('media_out.jpg')
+        if os.path.exists(roop.globals.target_path):
+            clean_temp(roop.globals.target_path)
+        delete_files(['face.png','media.gif','media.png','media.mp4','media_out.gif','media_out.mp4','media_out.jpg'])
         print(f"temp have been removed.")
     except Exception as e:
         print(f"Error deleting directory: {e}")
 
     taskData = data['data']
-    media_file_url = data['data']['media']['file_url']
-    face_file_url = data['data']['face']['file_url']
+
+    media_file_url = ''
+    face_file_url = ''
+    if data['data']['media'] == False:
+        return;
+    if data['data']['face'] == False:
+        return;
+    try:
+        media_file_url = data['data']['media']['file_url']
+        face_file_url = data['data']['face']['file_url']
+    except Exception as e:
+        print(f"error get media_file_url: {e} {data}")
     
     media_filename = "media" + os.path.splitext(media_file_url)[1]
     face_filename = "face" + os.path.splitext(face_file_url)[1]
@@ -534,7 +547,7 @@ def work():
         proc_image(media_filename, face_filename, out_file_path)
 
         addLog(0, 2, 'finish quickly', 99)
-        upload_res = upload_image('https://fakeface.io/upload.php?m=png', real_out_file_path)
+        upload_res = upload_image('https://fakeface.io/upload.php?m=png', out_file_path)
         
         print('Upload result:', upload_res)
         api_res = callApi("wokerAddMedia", {'user_id':data['data']['user_id'], 'media_id':data['data']['finish_media_id'], 'file_url':upload_res['link'], 'thumb_url':upload_res['thumb'], 'file_hash':'121212'})
