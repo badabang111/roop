@@ -531,7 +531,9 @@ def work():
         if(extName == '.gif'):
             mp42gif('media_out.mp4', 'media_out.gif')
             out_file_path = 'media_out.gif'
-        
+        if os.path.exists(out_file_path):
+            addLog(1, -1, 'finish quickly', 99)
+            return
         upload_video_res = upload_file('https://fakeface.io/upload.php?m=media', out_file_path)
         upload_image_res = upload_image('https://fakeface.io/upload.php?m=thumb', thumb_file_path)
 
@@ -546,6 +548,9 @@ def work():
         real_out_file_path = 'media_out' + extName
         proc_image(media_filename, face_filename, out_file_path)
 
+        if os.path.exists(out_file_path):
+            addLog(1, -1, 'finish quickly', 99)
+            return
         addLog(0, 2, 'finish quickly', 99)
         upload_res = upload_image('https://fakeface.io/upload.php?m=png', out_file_path)
         
