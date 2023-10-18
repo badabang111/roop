@@ -515,43 +515,51 @@ def work():
 
     extName = os.path.splitext(media_file_url)[1].lower()
         
-    if media_filename.lower().endswith(('.gif','.mp4', '.m4v', '.mkv', '.avi', '.mov', '.webm', '.mpeg', '.mpg', '.wmv', '.flv', '.asf', '.3gp', '.3g2', '.ogg', '.vob', '.rmvb', '.ts', '.m2ts', '.divx', '.xvid', '.h264', '.avc', '.hevc', '.vp9', '.avchd')):
+    if media_filename.lower().endswith(('.mp4', '.m4v', '.mkv', '.avi', '.mov', '.webm', '.mpeg', '.mpg', '.wmv', '.flv', '.asf', '.3gp', '.3g2', '.ogg', '.vob', '.rmvb', '.ts', '.m2ts', '.divx', '.xvid', '.h264', '.avc', '.hevc', '.vp9', '.avchd')):
         
         out_file_path = 'media_out.mp4'
-        print('文件后缀：', extName)
-        if(extName.endswith('gif')):
-            media_filename = 'media.mp4'
-            gif2mp4('media.gif', 'media.mp4')
-        
         proc_video(media_filename, face_filename, out_file_path)
-        #out_file_path = 'media.mp4'
         thumb_file_path = 'thumb_media.jpg'
         generate_video_thumbnail(out_file_path, thumb_file_path)
-        addLog(0, 2, 'finish quickly', 99)
-        if(extName == '.gif'):
-            mp42gif('media_out.mp4', 'media_out.gif')
-            out_file_path = 'media_out.gif'
         if os.path.exists(out_file_path):
-            addLog(1, -1, 'finish quickly', 99)
+            addLog(1, -1, 'Processing failed', 99)
             return
         upload_video_res = upload_file('https://fakeface.io/upload.php?m=media', out_file_path)
         upload_image_res = upload_image('https://fakeface.io/upload.php?m=thumb', thumb_file_path)
-
         print('Upload result:', upload_video_res, upload_image_res)
-        
         api_res = callApi("wokerAddMedia", {'user_id':data['data']['user_id'], 'media_id':data['data']['finish_media_id'], 'file_url':upload_video_res['link'], 'thumb_url':upload_image_res['thumb'], 'file_hash':upload_video_res['size']})
         print('Api result:', api_res)
         addLog(1, 3, 'finish', 100)
         return
-    if media_filename.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif', '.webp', '.ppm', '.pgm', '.pbm', '.pnm', '.heif', '.bat', '.bpg', '.ico', '.svg', '.eps', '.pdf')):
+
+    if media_filename.lower().endswith(('.gif')):
+        out_file_path = 'media_out.mp4'
+        print('文件后缀：', extName)
+        gif2mp4('media.gif', 'media.mp4')
+        proc_video(media_filename, face_filename, out_file_path)
+        thumb_file_path = 'thumb_media.jpg'
+        generate_video_thumbnail(out_file_path, thumb_file_path)
+        mp42gif('media_out.mp4', 'media_out.gif')
+        out_file_path = 'media_out.gif'
+        if os.path.exists(out_file_path):
+            addLog(1, -1, 'Processing failed', 99)
+            return
+        upload_video_res = upload_file('https://fakeface.io/upload.php?m=media', out_file_path)
+        upload_image_res = upload_image('https://fakeface.io/upload.php?m=thumb', thumb_file_path)
+        print('Upload result:', upload_video_res, upload_image_res)
+        api_res = callApi("wokerAddMedia", {'user_id':data['data']['user_id'], 'media_id':data['data']['finish_media_id'], 'file_url':upload_video_res['link'], 'thumb_url':upload_image_res['thumb'], 'file_hash':upload_video_res['size']})
+        print('Api result:', api_res)
+        addLog(1, 3, 'finish', 100)
+        return
+    if media_filename.lower().endswith(('.jpg')):
         out_file_path = 'media_out.jpg'
-        real_out_file_path = 'media_out' + extName
+        real_out_file_path = 'media_out.jpg'
         proc_image(media_filename, face_filename, out_file_path)
 
         if os.path.exists(out_file_path):
-            addLog(1, -1, 'finish quickly', 99)
+            addLog(1, -1, 'Processing failed', 99)
             return
-        addLog(0, 2, 'finish quickly', 99)
+     #   addLog(0, 2, 'finish quickly', 99)
         upload_res = upload_image('https://fakeface.io/upload.php?m=png', out_file_path)
         
         print('Upload result:', upload_res)
