@@ -175,7 +175,7 @@ def start() -> None:
 
     #总帧数传上去
     print('发送总帧数:', len(temp_frame_paths))
-    addLog(0, 2, 'frame', 0, len(temp_frame_paths))
+ #   addLog(0, 2, 'frame', 0, len(temp_frame_paths))
 
     if temp_frame_paths:
         for frame_processor in get_frame_processors_modules(roop.globals.frame_processors):
