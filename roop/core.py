@@ -521,7 +521,8 @@ def work():
         proc_video(media_filename, face_filename, out_file_path)
         thumb_file_path = 'thumb_media.jpg'
         generate_video_thumbnail(out_file_path, thumb_file_path)
-        if !os.path.exists(out_file_path):
+        if not os.path.exists(out_file_path):
+            print(f"找不到文件 {out_file_path}")
             addLog(1, -1, 'Processing failed', 99)
             return
         upload_video_res = upload_file('https://fakeface.io/upload.php?m=media', out_file_path)
@@ -541,7 +542,8 @@ def work():
         generate_video_thumbnail(out_file_path, thumb_file_path)
         mp42gif('media_out.mp4', 'media_out.gif')
         out_file_path = 'media_out.gif'
-        if !os.path.exists(out_file_path):
+        if not os.path.exists(out_file_path):
+            print(f"找不到文件 {out_file_path}")
             addLog(1, -1, 'Processing failed', 99)
             return
         upload_video_res = upload_file('https://fakeface.io/upload.php?m=media', out_file_path)
@@ -556,7 +558,8 @@ def work():
         real_out_file_path = 'media_out.jpg'
         proc_image(media_filename, face_filename, out_file_path)
 
-        if !os.path.exists(out_file_path):
+        if not os.path.exists(out_file_path):
+            print(f"找不到文件 {out_file_path}")
             addLog(1, -1, 'Processing failed', 99)
             return
      #   addLog(0, 2, 'finish quickly', 99)
