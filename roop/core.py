@@ -138,6 +138,8 @@ def update_status(message: str, scope: str = 'ROOP.CORE') -> None:
 
 
 def start() -> None:
+
+    print('测试', roop.globals.frame_processors)
     for frame_processor in get_frame_processors_modules(roop.globals.frame_processors):
         if not frame_processor.pre_start():
             return
@@ -148,6 +150,10 @@ def start() -> None:
         shutil.copy2(roop.globals.target_path, roop.globals.output_path)
         # process frame
         for frame_processor in get_frame_processors_modules(roop.globals.frame_processors):
+            
+            print('frame_processor.NAME:', frame_processor.NAME, frame_processor.NAME == 'ROOP.FACE-ENHANCER')
+            if frame_processor.NAME == 'ROOP.FACE-ENHANCER' and  not taskData['is_enhancement']:
+                continue;
             update_status('Progressing...', frame_processor.NAME)
             frame_processor.process_image(roop.globals.source_path, roop.globals.output_path, roop.globals.output_path)
             frame_processor.post_process()
@@ -504,7 +510,7 @@ def work():
 
 
     # roop.globals.frame_processors = ['face_swapper', 'face_enhancer']
-    print('parse_args result:', roop.globals.frame_processors)
+    print('parse_args result:', roop.globals)
     if data['data']['is_enhancement']:
         roop.globals.frame_processors = ['face_swapper', 'face_enhancer']
     print('parse_args result:', roop.globals.frame_processors)
