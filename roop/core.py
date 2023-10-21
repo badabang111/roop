@@ -501,6 +501,14 @@ def work():
         return;
     if data['data']['face'] == False:
         return;
+
+
+    # roop.globals.frame_processors = ['face_swapper', 'face_enhancer']
+    print('parse_args result:', roop.globals.frame_processors)
+    if data['data']['is_enhancement']:
+        roop.globals.frame_processors = ['face_swapper', 'face_enhancer']
+    print('parse_args result:', roop.globals.frame_processors)
+        
     try:
         media_file_url = data['data']['media']['file_url']
         face_file_url = data['data']['face']['file_url']
@@ -574,6 +582,7 @@ def work():
 
 def run() -> None:
     parse_args()
+       
     if not pre_check():
         return
     for frame_processor in get_frame_processors_modules(roop.globals.frame_processors):
