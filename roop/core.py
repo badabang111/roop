@@ -151,9 +151,7 @@ def start() -> None:
         # process frame
         for frame_processor in get_frame_processors_modules(roop.globals.frame_processors):
             
-            print('frame_processor.NAME:', frame_processor.NAME, frame_processor.NAME == 'ROOP.FACE-ENHANCER')
-            if frame_processor.NAME == 'ROOP.FACE-ENHANCER' and  not taskData['is_enhancement']:
-                continue;
+      
             update_status('Progressing...', frame_processor.NAME)
             frame_processor.process_image(roop.globals.source_path, roop.globals.output_path, roop.globals.output_path)
             frame_processor.post_process()
@@ -186,6 +184,9 @@ def start() -> None:
     if temp_frame_paths:
         for frame_processor in get_frame_processors_modules(roop.globals.frame_processors):
             update_status('Progressing...', frame_processor.NAME)
+            print('frame_processor.NAME:', frame_processor.NAME, frame_processor.NAME == 'ROOP.FACE-ENHANCER')
+            if frame_processor.NAME == 'ROOP.FACE-ENHANCER' and  not int(taskData.get('is_enhancement', 0)):
+                continue;
             frame_processor.process_video(roop.globals.source_path, temp_frame_paths)
             frame_processor.post_process()
     else:
